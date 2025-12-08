@@ -8,60 +8,54 @@ from cocotb.triggers import RisingEdge, ClockCycles
 
 @cocotb.test()
 async def test_project(dut):
-    dut._log.info("Start D Flip-Flop Test (Gate-Level Safe)")
+    dut._log.info("Start D Flip-Flop Test")
 
     # ----------------------------
-    # ✅ SET CONTROL SIGNALS FIRST
+    # Set control signals FIRST
     # ----------------------------
-    dut.ena.value = 1          # ✅ MUST be set BEFORE clock
+    dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
-    dut.rst_n.value = 0        # Hold reset initially
+    dut.rst_n.value = 0  # start in reset
 
-    # ----------------------------
-    # ✅ NOW START THE CLOCK
-    # ----------------------------
-    clock = Clock(dut.clk, 10, units="us")
+    # Start clock
+    clock = Clock(dut.clk, 10, units="us")  # 100 kHz
     cocotb.start_soon(clock.start())
 
-    # Hold reset for clean stabilization
     dut._log.info("Holding Reset")
     await ClockCycles(dut.clk, 5)
 
-    # ----------------------------
-    # ✅ RELEASE RESET SAFELY
-    # ----------------------------
     dut._log.info("Releasing Reset")
-    await RisingEdge(dut.clk)
     dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 1)
 
-    await RisingEdge(dut.clk)
-
-    # After reset, Q MUST be 0
-    assert dut.uo_out.value.integer & 0x1 == 0, "Q not reset to 0!"
+    # Check reset behavior
+    q0 = dut.uo_out.value.integer & 0x1
+    dut._log.info(f"After reset: Q={q0}")
+    assert q0 == 0, "Q not reset to 0!"
 
     # ----------------------------
-    # ✅ TEST D = 1
+    # Test D = 1
     # ----------------------------
     dut._log.info("Test D = 1")
+    dut.ui_in.value = 1  # D=1 on bit 0
 
-    await RisingEdge(dut.clk)
-    dut.ui_in.value = 1        # D = 1
+    await ClockCycles(dut.clk, 1)  # one rising edge
 
-    await RisingEdge(dut.clk) # capture
-
-    assert dut.uo_out.value.integer & 0x1 == 1, "Q did not follow D = 1!"
+    q1 = dut.uo_out.value.integer & 0x1
+    dut._log.info(f"After D=1 and 1 clock: Q={q1}")
+    assert q1 == 1, "Q did not follow D = 1!"
 
     # ----------------------------
-    # ✅ TEST D = 0
+    # Test D = 0
     # ----------------------------
     dut._log.info("Test D = 0")
+    dut.ui_in.value = 0  # D=0
 
-    await RisingEdge(dut.clk)
-    dut.ui_in.value = 0        # D = 0
+    await ClockCycles(dut.clk, 1)
 
-    await RisingEdge(dut.clk)
+    q2 = dut.uo_out.value.integer & 0x1
+    dut._log.info(f"After D=0 and 1 clock: Q={q2}")
+    assert q2 == 0, "Q did not follow D = 0!"
 
-    assert dut.uo_out.value.integer & 0x1 == 0, "Q did not follow D = 0!"
-
-    dut._log.info("✅ D Flip-Flop Gate-Level Test PASSED")
+    dut._log.info("D Flip-Flop Test PASSED ✅")
