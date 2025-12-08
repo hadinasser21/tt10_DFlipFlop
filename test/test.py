@@ -3,59 +3,52 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, ClockCycles
+from cocotb.triggers import ClockCycles
 
 
 @cocotb.test()
 async def test_project(dut):
-    dut._log.info("Start D Flip-Flop Test")
+    dut._log.info("Start")
 
-    # ----------------------------
-    # Set control signals FIRST
-    # ----------------------------
+    # Set the clock period to 10 us (100 KHz)
+    clock = Clock(dut.clk, 10, units="us")
+    cocotb.start_soon(clock.start())
+
+    # Reset
+    dut._log.info("Reset")
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
-    dut.rst_n.value = 0  # start in reset
-
-    # Start clock
-    clock = Clock(dut.clk, 10, units="us")  # 100 kHz
-    cocotb.start_soon(clock.start())
-
-    dut._log.info("Holding Reset")
-    await ClockCycles(dut.clk, 5)
-
-    dut._log.info("Releasing Reset")
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
-    await ClockCycles(dut.clk, 1)
 
-    # Check reset behavior
-    q0 = dut.uo_out.value.integer & 0x1
-    dut._log.info(f"After reset: Q={q0}")
-    assert q0 == 0, "Q not reset to 0!"
+    dut._log.info("Test project behavior")
 
-    # ----------------------------
-    # Test D = 1
-    # ----------------------------
-    dut._log.info("Test D = 1")
-    dut.ui_in.value = 1  # D=1 on bit 0
+# Set the input values you want to test
+    dut.ui_in[0].value = 0
+    dut.ui_in[1].value = 0
 
-    await ClockCycles(dut.clk, 1)  # one rising edge
+# Wait for a certain number of clock cycles as you choose to see the output values
+    await ClockCycles(dut.clk, 25)
 
-    q1 = dut.uo_out.value.integer & 0x1
-    dut._log.info(f"After D=1 and 1 clock: Q={q1}")
-    assert q1 == 1, "Q did not follow D = 1!"
+# The following assertion is just an example of how to check the output values.
+   # Change it to match the actual expected output of your module:
+    assert dut.uo_out[0].value == 1
 
-    # ----------------------------
-    # Test D = 0
-    # ----------------------------
-    dut._log.info("Test D = 0")
-    dut.ui_in.value = 0  # D=0
+    dut.ui_in[0].value = 0
+    dut.ui_in[1].value = 1
+    await ClockCycles(dut.clk, 25)
+    assert dut.uo_out[0].value == 1
 
-    await ClockCycles(dut.clk, 1)
+    dut.ui_in[0].value = 1
+    dut.ui_in[1].value = 0
+    await ClockCycles(dut.clk, 25)
+    assert dut.uo_out[0].value == 1
 
-    q2 = dut.uo_out.value.integer & 0x1
-    dut._log.info(f"After D=0 and 1 clock: Q={q2}")
-    assert q2 == 0, "Q did not follow D = 0!"
-
-    dut._log.info("D Flip-Flop Test PASSED ✅")
+    dut.ui_in[0].value = 1
+    dut.ui_in[1].value = 1
+    await ClockCycles(dut.clk, 25)
+    assert dut.uo_out[0].value == 0
+# Keep testing the module by changing the input values, waiting for
+   # one or more clock cycles, and asserting the expected output values.
