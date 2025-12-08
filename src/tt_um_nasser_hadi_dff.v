@@ -17,7 +17,7 @@ module tt_um_nasser_hadi_dff (
 
     // D Flip-Flop Input and Output
     wire D = ui_in[0];
-    reg  Q;
+    reg Q = 1'b0;
 
     // Sequential Logic
     always @(posedge clk or negedge rst_n) begin
