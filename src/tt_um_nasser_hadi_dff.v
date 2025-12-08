@@ -17,25 +17,26 @@ module tt_um_nasser_hadi_dff (
 
     // D Flip-Flop Input and Output
     wire D = ui_in[0];
-    reg Q = 1'b0;
+    reg  Q = 1'b0;   // initialized so sim never sees X
 
     // Sequential Logic
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n)
-            Q <= 1'b0;    // Reset output
+            Q <= 1'b0;    // async active-low reset
         else
-            Q <= D;       // Store input on rising clock
+            Q <= D;       // capture D on rising edge
     end
 
     // Output Assignment
     assign uo_out[0] = Q;
-    assign uo_out[7:1] = 0;
+    assign uo_out[7:1] = 8'b0;
 
-    assign uio_out = 0;
-    assign uio_oe  = 0;
+    assign uio_out = 8'b0;
+    assign uio_oe  = 8'b0;
 
     // Prevent unused warnings
     wire _unused = &{ena, ui_in[7:1], uio_in, 1'b0};
 
 endmodule
+
 
